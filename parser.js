@@ -15,10 +15,6 @@ const { answers } = require("./FSanswers");
 const { productIDModel } = require("./NoSQLSchema");
 const { db } = require("./mongo");
 
-/* */
-
-/*  STAGE 1 */
-
 // {
 //   id: '99',
 //   product_id: '29',
@@ -40,13 +36,11 @@ const { db } = require("./mongo");
 //   helpful: '0'
 // },
 
-/*
+/*  */
 
-new 
+/*  STAGE 1 */
 
-
-*/
-
+/* this function gets the headers from the dir file /QA-CSV-Headers/questionsHeaders.csv */
 const getQuestionsHeaders = async () => {
   return new Promise((resolve, reject) => {
     csv({
@@ -59,6 +53,16 @@ const getQuestionsHeaders = async () => {
   });
 };
 
+/* 
+
+  this function is the bread/butter, 
+  
+  it reads the 3 mil+ csv file and 
+  it takes in that data,
+  seprates them into 4 different files,
+  then spits them out in testCsvMaker
+
+*/
 const makeCsv = () => {
   csv()
     .fromFile(__dirname + "/QA-CSV-Files/questions.csv")
@@ -68,16 +72,7 @@ const makeCsv = () => {
       const eachFractionLength = Math.ceil(jsonObj.length / 4);
 
       for (let i = 1; i <= 4; i++) {
-        // const csvWriter = createCsvWriter({
-        //   path: `${__dirname}/testCsvMaker/questions${i}.csv`,
-        //   header: headers
-        // });
-
         let csvObjChunk = jsonObj.splice(0, eachFractionLength);
-
-        // csvWriter
-        //   .writeRecords(csvObjChunk)
-        //   .then(() => console.log("The CSV file was written successfully"));
 
         const ws = fs.createWriteStream(
           `${__dirname}/testCsvMaker/questions${i}.csv`
@@ -97,147 +92,7 @@ readFile(__dirname + "/QA-CSV-Files/questions.csv", "utf8", (err, data) => {
   const headers = data.slice(0, 1);
 
   const eachFractionLength = Math.ceil(data.length / 4);
-
-  // , {
-  //   headers: true,
-  // }
-
-  for (let i = 1; i <= 4; i++) {
-    // const ws = fs.createWriteStream(`testCsvMaker/questions${i}.csv`);
-    // console.log(data.splice(1, eachFractionLength));
-    // let newData =
-    /*
-
-    game plan - 
-
-    give the actual file name to csv to json parser
-
-    it will then give us something like this - 
-    
-     * [
-     * 	{a:"1", b:"2", c:"3"},
-     * 	{a:"4", b:"5". c:"6"}
-     * ]
-  
-
-    with that we can convert it back to csv with fast csv and then  repeat the process 4 times 
-
-    each time just slice off a section 
-
-    we then can create child nodes to proccess that info 
-    */
-    // csv()
-    //   .fromFile()
-    //   .then((jsonObj) => {
-    //     console.log(jsonObj);
-    //   });
-    // fastcsv.write([...headers, data.splice(1, eachFractionLength)]).pipe(ws);
-  }
-
-  // console.log(Math.ceil(data.length / 4));
 });
-
-// hold all the pre-documents
-
-// let drainerPlug = 0;
-
-// const drainer = [];
-
-// let questionsRef = questions
-//   .pipe(csv({}))
-//   .on("data", async (questionsData) => {
-//     var csvContents = getCsvContents(myFile);
-
-// let filter = { product_id: questionsData[" product_id"] };
-// let update = { product_id: questionsData[" product_id"] };
-
-// drainer.push({
-//   updateOne: {
-//     filter,
-//     update,
-//     upsert: true,
-//   },
-// });
-
-// drainerPlug++;
-// // const resume = () => {};
-// const writeToDB = () => {
-//   // get ready to bulkWrite to the db
-//   productIDModel.bulkWrite(drainer);
-// };
-
-// const drain = () => {
-//   questions.pause();
-//   writeToDB();
-//   questions.resume();
-
-//   drainerPlug = 0;
-// };
-
-// if (drainerPlug === 100000) {
-//   drain();
-// }
-
-// answers.on('data', ( answersData) => {
-
-// })
-
-// let answersData = await new Promise((resolve, reject) => {
-//   answers.pipe(csv()).on("data", (answers) => {
-//     resolve(answers);
-//   });
-// });
-
-// console.log( questionsData ,questionsData[' product_id'])
-
-// const options = { upsert: true, new: true };
-// const filter = {
-//   product_id: Number(questionsData[" product_id"]),
-// };
-// const update = {
-//   product_id: Number(questionsData[" product_id"]),
-// };
-
-// productIDModel
-//   .findOneAndUpdate(filter, update, options)
-//   .exec()
-//   .catch((err) => {
-//     console.log(err, "error");
-//   });
-
-// console.log("does id exist?", does_id_exist);
-
-// if (!does_id_exist) {
-//   const ProductID = new productIDModel({
-//     product_id: Number(questionsData[" product_id"]),
-//   }).save((err, data) => {
-//     if (err) return console.error(err);
-//     console.log(data, "succefully saved product id!");
-//   });
-// }
-
-// console.log("we got data", questionsData);
-// })
-// .on("end", () => {
-// console.log(questions);
-// });
-
-// fs.createReadStream("./QA-CSV-Files/questions.csv")
-//   .pipe(csv({}))
-//   .on("data", (data) => console.log(data))
-//   .on("end", () => {
-//     // console.log(questions);
-//   });
-
-//   , { start: 0, end: 5000 }
-
-// const answersStream = fs.createReadStream("./QA-CSV-Files/answers.csv")
-//   .pipe(csv({}))
-//   .on("data", (data) => console.log(data))
-//   .on("end", () => {
-//     // console.log(answers);
-//   });
-
 /*  ------ STAGE 1 */
 
 /* 
