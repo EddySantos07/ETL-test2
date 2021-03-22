@@ -101,7 +101,6 @@ const readAllFiles = () => {
         csv()
           .fromFile(__dirname + `/testCsvMaker/questions${i}.csv`)
           .then((obj) => {
-            // console.log(obj)
             resolve(obj);
           });
       })
@@ -113,16 +112,36 @@ const readAllFiles = () => {
 
 let promiseData = readAllFiles();
 
+// productIDModel.bulkWrite(drainer); // syntax for bulkWrite
+
+// {
+//   updateOne: {
+//     filter,
+//     update,
+//     upsert: true,
+//   }
+
 const getIDs = async (chunk) => {
   return new Promise((resolve, reject) => {
     let idContainer = [];
 
     for (let i = 0; i < chunk.length; i++) {
       let objID = chunk[i].product_id;
+      console.log(objID)
+      let filter = { product_id: objID };
 
-      idContainer.push({ product_id: objID });
+      let update = { product_id: objID };
+
+      idContainer.push({
+        updateOne: {
+          filter,
+          update,
+          upsert: true,
+        },
+      });
     }
-
+    // console.log(idContainer)
+    productIDModel.bulkWrite(idContainer);
     resolve(idContainer);
   });
 };
@@ -139,11 +158,24 @@ const initiateGetIDs = async (chunkArr) => {
 
   arrChunks.push(getIDs(firstHalf));
   arrChunks.push(getIDs(secondHalf));
+
+  return arrChunks;
 };
 
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
   Promise.all(promiseArr).then((data) => {
+    // console.log()
     // console.log(data.length, "length of all the data"); //this is 4 chunks of 4 arrays containing all 3 mil csv data
+
+    const test = initiateGetIDs(data[0]);
+
+    // console.log(test, 'test')
+    Promise.resolve(test).then((promiseArr) => {
+      // console.log(promiseArr);
+      Promise.all(promiseArr).then((newArr) => {
+        console.log("done for now");
+      });
+    });
   });
 };
 
