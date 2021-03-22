@@ -56,7 +56,7 @@ const getQuestionsHeaders = async () => {
 /* 
 
   this function is the bread/butter, 
-  
+
   it reads the 3 mil+ csv file and 
   it takes in that data,
   seprates them into 4 different files,
@@ -82,17 +82,30 @@ const makeCsv = () => {
     });
 };
 
-makeCsv();
+// makeCsv();
 
-readFile(__dirname + "/QA-CSV-Files/questions.csv", "utf8", (err, data) => {
-  if (err) throw err;
+const readAllFiles = () => { 
 
-  data = data.split("\n");
+  let data = [];
 
-  const headers = data.slice(0, 1);
+  for (let i = 1; i <= 4; i++) {
+    // readFile(__dirname + `/testCsvMaker/questions${i}.csv`, "utf8", (err, data) => {
+    //   if (err) throw err;
+      
+    //   console.log(data)
+    // });
 
-  const eachFractionLength = Math.ceil(data.length / 4);
-});
+    csv()
+    .fromFile(__dirname + `/testCsvMaker/questions${i}.csv`)
+    .then( obj => {
+      // console.log(obj)
+      data.push(obj);
+      console.log(data.length)
+    }) 
+  }
+}
+
+readAllFiles();
 /*  ------ STAGE 1 */
 
 /* 
