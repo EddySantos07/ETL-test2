@@ -14,6 +14,7 @@ const { answers } = require("./FSanswers");
 
 const { productIDModel } = require("./NoSQLSchema");
 const { db } = require("./mongo");
+const { resolve } = require("path");
 
 // {
 //   id: '99',
@@ -85,6 +86,7 @@ const makeCsv = () => {
 // makeCsv();
 
 const readAllFiles = () => {
+  // returns 4 promises with all the data
   let data = [];
 
   for (let i = 1; i <= 4; i++) {
@@ -111,11 +113,37 @@ const readAllFiles = () => {
 
 let promiseData = readAllFiles();
 
+const getIDs = async (chunk) => {
+  return new Promise((resolve, reject) => {
+    let idContainer = [];
+
+    for (let i = 0; i < chunk.length; i++) {
+      let objID = chunk[i].product_id;
+
+      idContainer.push({ product_id: objID });
+    }
+
+    resolve(idContainer);
+  });
+};
+
+const initiateGetIDs = async (chunkArr) => {
+  const chunkArrCopy = [...chunkArr];
+
+  let arrChunks = [];
+
+  const half = Math.ceil(chunkArr.length / 2);
+
+  const firstHalf = chunkArrCopy.splice(0, half);
+  const secondHalf = chunkArrCopy.splice(-half);
+
+  arrChunks.push(getIDs(firstHalf));
+  arrChunks.push(getIDs(secondHalf));
+};
+
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
   Promise.all(promiseArr).then((data) => {
-    console.log(data.length, 'length of all the data')
-
-
+    // console.log(data.length, "length of all the data"); //this is 4 chunks of 4 arrays containing all 3 mil csv data
   });
 };
 
