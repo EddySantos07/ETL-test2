@@ -166,23 +166,21 @@ const initiateGetIDs = async (chunkArr) => {
   return arrChunks;
 };
 
-const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => { 
+const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => {
   // console.log(arrPromiseToWaitFor);
 
-  let data = arrPromiseToWaitForCB(originalArr[arrIndex])
+  let data = arrPromiseToWaitForCB(originalArr[arrIndex]);
 
-  Promise.resolve( data ).then((multiArrPromise) => {
+  Promise.resolve(data).then((multiArrPromise) => {
     Promise.all(multiArrPromise).then((data) => {
-      
-      if ( arrIndex === originalArr.length-1 ) {
-        return
-      } 
+      if (arrIndex === originalArr.length - 1) {
+        return;
+      }
 
       arrIndex += 1;
 
-      console.log('^ should see first data executed before next call')
-      awaitNextCall( arrPromiseToWaitForCB, originalArr, arrIndex );
-
+      console.log("^ should see first data executed before next call");
+      awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
     });
   });
 };
