@@ -84,28 +84,43 @@ const makeCsv = () => {
 
 // makeCsv();
 
-const readAllFiles = () => { 
-
+const readAllFiles = () => {
   let data = [];
 
   for (let i = 1; i <= 4; i++) {
     // readFile(__dirname + `/testCsvMaker/questions${i}.csv`, "utf8", (err, data) => {
     //   if (err) throw err;
-      
+
     //   console.log(data)
     // });
 
-    csv()
-    .fromFile(__dirname + `/testCsvMaker/questions${i}.csv`)
-    .then( obj => {
-      // console.log(obj)
-      data.push(obj);
-      console.log(data.length)
-    }) 
+    data.push(
+      new Promise((resolve, reject) => {
+        csv()
+          .fromFile(__dirname + `/testCsvMaker/questions${i}.csv`)
+          .then((obj) => {
+            // console.log(obj)
+            resolve(obj);
+          });
+      })
+    );
   }
-}
 
-readAllFiles();
+  return data;
+};
+
+let promiseData = readAllFiles();
+
+const resolveAllDataToInjectIntoDb = (promiseArr) => {
+  Promise.all(promiseArr).then((data) => {
+    console.log(data.length, 'length of all the data')
+
+
+  });
+};
+
+resolveAllDataToInjectIntoDb(promiseData);
+
 /*  ------ STAGE 1 */
 
 /* 
