@@ -127,7 +127,7 @@ const getIDs = async (chunk) => {
 
     for (let i = 0; i < chunk.length; i++) {
       let objID = chunk[i].product_id;
-      console.log(objID)
+      console.log(objID);
       let filter = { product_id: objID };
 
       let update = { product_id: objID };
@@ -141,8 +141,12 @@ const getIDs = async (chunk) => {
       });
     }
     // console.log(idContainer)
-    productIDModel.bulkWrite(idContainer);
-    resolve(idContainer);
+    productIDModel.bulkWrite(idContainer).then((data) => {
+      console.log("first data executed ");
+      resolve(data);
+    });
+    // console.log("bulk writing!");
+    // resolve(idContainer);
   });
 };
 
@@ -162,20 +166,45 @@ const initiateGetIDs = async (chunkArr) => {
   return arrChunks;
 };
 
+const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => { 
+  // console.log(arrPromiseToWaitFor);
+
+  let data = arrPromiseToWaitForCB(originalArr[arrIndex])
+
+  Promise.resolve( data ).then((multiArrPromise) => {
+    Promise.all(multiArrPromise).then((data) => {
+      
+      if ( arrIndex === originalArr.length-1 ) {
+        return
+      } 
+
+      arrIndex += 1;
+
+      console.log('^ should see first data executed before next call')
+      awaitNextCall( arrPromiseToWaitForCB, originalArr, arrIndex );
+
+    });
+  });
+};
+
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
   Promise.all(promiseArr).then((data) => {
-    // console.log()
-    // console.log(data.length, "length of all the data"); //this is 4 chunks of 4 arrays containing all 3 mil csv data
+    //this is 4 chunks of 4 arrays containing all 3 mil csv data
 
-    const test = initiateGetIDs(data[0]);
+    awaitNextCall(initiateGetIDs, data, 0);
 
-    // console.log(test, 'test')
-    Promise.resolve(test).then((promiseArr) => {
-      // console.log(promiseArr);
-      Promise.all(promiseArr).then((newArr) => {
-        console.log("done for now");
-      });
-    });
+    // const test = initiateGetIDs(data[0]);
+
+    // for (let i = 0; i < data.length; i++) {
+    //   initiateGetIDs(data[i]);
+    // }
+
+    // Promise.resolve(test).then((promiseArr) => {
+    //   // console.log(promiseArr);
+    //   Promise.all(promiseArr).then((newArr) => {
+    //     console.log("done for now");
+    //   });
+    // });
   });
 };
 
