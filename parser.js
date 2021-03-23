@@ -130,7 +130,10 @@ const getIDs = async (chunk) => {
       console.log(objID);
       let filter = { product_id: objID };
 
-      let update = { product_id: objID };
+      let update = {
+        product_id: objID,
+        results: [],
+      };
 
       idContainer.push({
         updateOne: {
@@ -150,6 +153,52 @@ const getIDs = async (chunk) => {
   });
 };
 
+const insertBodyIntoProductID = (chunkArr) => {
+  return new Promise((resolve, reject) => {
+    let BodyContainer = [];
+
+    for (let i = 0; i < chunk.length; i++) {
+      let objID = chunk[i].product_id;
+
+      let question_id = chunk[i].id;
+      let question_body = chunk[i].body;
+      let question_date = chunk[i].date_written;
+      let asker_name = chunk[i].asker_name;
+      let question_helpfulness = chunk[i].helpful;
+      let reported = chunk[i].reported;
+      let answers = {};
+
+      let filter = { product_id: objID };
+
+      let update = {
+        $push: {
+          results: {
+            question_id,
+            question_body,
+            question_date,
+            asker_name,
+            question_helpfulness,
+            reported,
+            answers,
+          },
+        },
+      };
+
+      BodyContainer.push({
+        updateOne: {
+          filter,
+          update,
+          upsert: true,
+        },
+      });
+    }
+    productIDModel.bulkWrite(BodyContainer).then((data) => {
+      console.log("first Body of data executed into product_id");
+      resolve(data);
+    });
+  });
+};
+
 const initiateGetIDs = async (chunkArr) => {
   const chunkArrCopy = [...chunkArr];
 
@@ -166,9 +215,13 @@ const initiateGetIDs = async (chunkArr) => {
   return arrChunks;
 };
 
-const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => {
-  // console.log(arrPromiseToWaitFor);
+const initiateGetBody = () => {
 
+  
+
+}
+
+const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => {
   let data = arrPromiseToWaitForCB(originalArr[arrIndex]);
 
   Promise.resolve(data).then((multiArrPromise) => {
@@ -190,19 +243,7 @@ const resolveAllDataToInjectIntoDb = (promiseArr) => {
     //this is 4 chunks of 4 arrays containing all 3 mil csv data
 
     awaitNextCall(initiateGetIDs, data, 0);
-
-    // const test = initiateGetIDs(data[0]);
-
-    // for (let i = 0; i < data.length; i++) {
-    //   initiateGetIDs(data[i]);
-    // }
-
-    // Promise.resolve(test).then((promiseArr) => {
-    //   // console.log(promiseArr);
-    //   Promise.all(promiseArr).then((newArr) => {
-    //     console.log("done for now");
-    //   });
-    // });
+    awaitNextCall( initiateGetBody, data, 0 );
   });
 };
 
