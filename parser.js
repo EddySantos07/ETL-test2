@@ -39,6 +39,15 @@ const { resolve } = require("path");
 
 /*  */
 
+const testQuery = async () => {
+  const filter = await productIDModel.updateOne(
+    { product_id: "1" },
+    { $set: { results: [] } }
+  );
+
+  console.log(filter, "filter");
+};
+// testQuery();
 /*  STAGE 1 */
 
 /* this function gets the headers from the dir file /QA-CSV-Headers/questionsHeaders.csv */
@@ -127,12 +136,11 @@ const getIDs = async (chunk) => {
 
     for (let i = 0; i < chunk.length; i++) {
       let objID = chunk[i].product_id;
-      console.log(objID);
-      let filter = { product_id: objID };
+      // console.log(objID);
+      let filter = { product_id: Number(objID.trim()) };
 
       let update = {
-        product_id: objID,
-        results: [],
+        product_id: Number(objID.trim()),
       };
 
       idContainer.push({
@@ -144,7 +152,16 @@ const getIDs = async (chunk) => {
       });
     }
     // console.log(idContainer)
+    let count = 1;
     productIDModel.bulkWrite(idContainer).then((data) => {
+      if (count === 1) {
+        console.log(
+          data.matchedCount,
+          " matched count",
+          data.modifiedCount,
+          "modified count"
+        );
+      }
       console.log("first data executed ");
       resolve(data);
     });
@@ -153,7 +170,7 @@ const getIDs = async (chunk) => {
   });
 };
 
-const insertBodyIntoProductID = (chunkArr) => {
+const insertBodyIntoProductID = (chunk) => {
   return new Promise((resolve, reject) => {
     let BodyContainer = [];
 
@@ -215,35 +232,49 @@ const initiateGetIDs = async (chunkArr) => {
   return arrChunks;
 };
 
-const initiateGetBody = () => {
+const initiateInsertBody = (chunkArr) => {
+  const chunkArrCopy = [...chunkArr];
 
-  
+  let arrChunks = [];
 
-}
+  const half = Math.ceil(chunkArr.length / 2);
+
+  const firstHalf = chunkArrCopy.splice(0, half);
+  const secondHalf = chunkArrCopy.splice(-half);
+
+  arrChunks.push(insertBodyIntoProductID(firstHalf));
+  arrChunks.push(insertBodyIntoProductID(secondHalf));
+
+  return arrChunks;
+};
 
 const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => {
   let data = arrPromiseToWaitForCB(originalArr[arrIndex]);
 
-  Promise.resolve(data).then((multiArrPromise) => {
-    Promise.all(multiArrPromise).then((data) => {
-      if (arrIndex === originalArr.length - 1) {
-        return;
-      }
+  return new Promise((resolve, reject) => {
+    Promise.resolve(data).then((multiArrPromise) => {
+      Promise.all(multiArrPromise).then((data) => {
+        if (arrIndex === originalArr.length - 1) {
+          resolve();
+        }
 
-      arrIndex += 1;
+        arrIndex += 1;
 
-      console.log("^ should see first data executed before next call");
-      awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+        console.log("^ should see first data executed before next call");
+        awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+      });
     });
   });
 };
 
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
-  Promise.all(promiseArr).then((data) => {
+  Promise.all(promiseArr).then(async (data) => {
     //this is 4 chunks of 4 arrays containing all 3 mil csv data
 
-    awaitNextCall(initiateGetIDs, data, 0);
-    awaitNextCall( initiateGetBody, data, 0 );
+    const wait1 = await awaitNextCall(initiateGetIDs, data, 0);
+
+    console.log("we can now initiate insert body");
+    awaitNextCall(initiateInsertBody, data, 0);
   });
 };
 
