@@ -226,66 +226,74 @@ const insertBodyIntoProductID = (chunk) => {
 };
 
 const initiateGetIDs = async (chunkArr, chunk_size) => {
+  // const chunkArrCopy = [...chunkArr];
+
+  // let arrChunks = [];
+
+  // const half = Math.ceil(chunkArr.length / 2);
+
+  // const firstHalf = chunkArrCopy.splice(0, half);
+  // const secondHalf = chunkArrCopy.splice(-half);
+
+  // arrChunks.push(getIDs(firstHalf));
+  // arrChunks.push(getIDs(secondHalf));
+
+  // return arrChunks;
+
   const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
 
-  const half = Math.ceil(chunkArr.length / 2);
-
-  const firstHalf = chunkArrCopy.splice(0, half);
-  const secondHalf = chunkArrCopy.splice(-half);
-
-  arrChunks.push(getIDs(firstHalf));
-  arrChunks.push(getIDs(secondHalf));
-
-  return arrChunks;
-
-  const chunkArrCopy = [...chunkArr];
-
-  let arrChunks = [];
-
-  while ( chunkArrCopy.length ) {
-    arrChunks.push( getIDs( chunkArrCopy.splice(0, chunk_size) ) );
+  while (chunkArrCopy.length) {
+    console.log("this is one of the chunks in initiate id");
+    arrChunks.push(getIDs(chunkArrCopy.splice(0, chunk_size)));
   }
 
+  console.log("returning promise chunks!");
   return arrChunks;
 };
 
 const initiateInsertBody = (chunkArr, chunk_size) => {
   // const chunkArrCopy = [...chunkArr];
 
-  let arrChunks = [];
+  // let arrChunks = [];
 
-  const half = Math.ceil(chunkArr.length / 2);
+  // const half = Math.ceil(chunkArr.length / 2);
 
-  const firstHalf = chunkArr.slice(0, half);
-  const secondHalf = chunkArr.slice(-half);
+  // const firstHalf = chunkArr.slice(0, half);
+  // const secondHalf = chunkArr.slice(-half);
 
-  arrChunks.push(insertBodyIntoProductID(firstHalf));
-  arrChunks.push(insertBodyIntoProductID(secondHalf));
+  // arrChunks.push(insertBodyIntoProductID(firstHalf));
+  // arrChunks.push(insertBodyIntoProductID(secondHalf));
 
-  console.log(arrChunks, "this is the 2 array chunks!");
-  return arrChunks;
+  // return arrChunks;
 
   const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
 
-  while ( chunkArrCopy.length ) {
-    arrChunks.push( insertBodyIntoProductID( chunkArrCopy.splice(0, chunk_size) ) );
+  while (chunkArrCopy.length) {
+    console.log("this is one of the chunks in initiate Body");
+    arrChunks.push(insertBodyIntoProductID(chunkArrCopy.splice(0, chunk_size)));
   }
 
+  console.log("returning promise chunks!");
   return arrChunks;
 };
 
-const awaitNextCall = async (arrPromiseToWaitForCB, originalArr, arrIndex, chunk_size) => {
+const awaitNextCall = async (
+  arrPromiseToWaitForCB,
+  originalArr,
+  arrIndex,
+  chunk_size
+) => {
   let chunk = arrPromiseToWaitForCB(originalArr[arrIndex], chunk_size);
 
   console.log("we got a chunk in await call");
   let promiseChunks = await new Promise((resolve, reject) => {
     Promise.resolve(chunk).then((data) => {
       console.log("we resolved promise chunk");
-      resolve(data)
+      resolve(data);
     });
   });
 
@@ -303,8 +311,16 @@ const awaitNextCall = async (arrPromiseToWaitForCB, originalArr, arrIndex, chunk
 
   arrIndex += 1;
 
-  const promises = await awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+  const promises = await awaitNextCall(
+    arrPromiseToWaitForCB,
+    originalArr,
+    arrIndex,
+    chunk_size
+  );
 
+  promiseChunks = "";
+  resolvedChunks = "";
+  delete promises;
   //   console.log(callStack, " this is the current call stack!!!");
   // Promise.resolve(data).then((multiArrPromise) => {
   //   Promise.all(multiArrPromise).then((data) => {
@@ -333,12 +349,12 @@ const resolveAllDataToInjectIntoDb = (promiseArr) => {
       and how many times you want the chunk to be split up even furthur! - 4 times
     */
 
-    const wait = await awaitNextCall(initiateGetIDs, data, 0, 4); 
+    // const wait = await awaitNextCall(initiateGetIDs, data, 0, 100000);
 
     console.log("all the promises or promise from recursive calls");
 
     // console.log("we can now initiate insert body");
-    const wait2 = await awaitNextCall(initiateInsertBody, data, 0, 4);
+    const wait2 = await awaitNextCall(initiateInsertBody, data, 0, 200000);
   });
 };
 
