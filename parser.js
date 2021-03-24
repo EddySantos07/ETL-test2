@@ -15,6 +15,7 @@ const { answers } = require("./FSanswers");
 const { productIDModel } = require("./NoSQLSchema");
 const { db } = require("./mongo");
 const { resolve } = require("path");
+const { resolve4, resolve6, resolveAny } = require("dns");
 
 // {
 //   id: '99',
@@ -171,6 +172,7 @@ const getIDs = async (chunk) => {
 };
 
 const insertBodyIntoProductID = (chunk) => {
+  console.log('called insert body')
   return new Promise((resolve, reject) => {
     let BodyContainer = [];
 
@@ -210,6 +212,12 @@ const insertBodyIntoProductID = (chunk) => {
       });
     }
     productIDModel.bulkWrite(BodyContainer).then((data) => {
+      console.log(
+        data.matchedCount,
+        " matched count",
+        data.modifiedCount,
+        "modified count"
+      );
       console.log("first Body of data executed into product_id");
       resolve(data);
     });
@@ -248,33 +256,60 @@ const initiateInsertBody = (chunkArr) => {
   return arrChunks;
 };
 
-const awaitNextCall = (arrPromiseToWaitForCB, originalArr, arrIndex) => {
-  let data = arrPromiseToWaitForCB(originalArr[arrIndex]);
+const awaitNextCall = async (arrPromiseToWaitForCB, originalArr, arrIndex) => {
+  let chunk = arrPromiseToWaitForCB(originalArr[arrIndex]);
 
-  return new Promise((resolve, reject) => {
-    Promise.resolve(data).then((multiArrPromise) => {
-      Promise.all(multiArrPromise).then((data) => {
-        if (arrIndex === originalArr.length - 1) {
-          resolve();
-        }
-
-        arrIndex += 1;
-
-        console.log("^ should see first data executed before next call");
-        awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
-      });
+  let promiseChunks = await new Promise((resolve, reject) => {
+    Promise.resolve(chunk).then((data) => {
+      resolve(data);
     });
   });
+
+  let resolvedChunks = await new Promise((resolve, reject) => {
+    Promise.all(promiseChunks).then((data) => {
+      resolve(data);
+    });
+  });
+
+  let callStack; 
+
+  if (arrIndex === originalArr.length - 1) {
+    console.log(callStack, ' call stack in if statement')
+    return;
+  }
+
+  arrIndex += 1;
+
+  callStack = await awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+
+  console.log( callStack,  " this is the current call stack!!!");
+
+  // Promise.resolve(data).then((multiArrPromise) => {
+  //   Promise.all(multiArrPromise).then((data) => {
+  //     if (arrIndex === originalArr.length - 1) {
+  //       resolve();
+  //       console.log("returning from await call!");
+  //       return;
+  //     }
+
+  //
+
+  //     console.log("^ should see first data executed before next call");
+  //     awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+  //   });
+  // });
 };
 
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
   Promise.all(promiseArr).then(async (data) => {
     //this is 4 chunks of 4 arrays containing all 3 mil csv data
 
-    const wait1 = await awaitNextCall(initiateGetIDs, data, 0);
+    // const wait = await awaitNextCall(initiateGetIDs, data, 0);
 
-    console.log("we can now initiate insert body");
-    awaitNextCall(initiateInsertBody, data, 0);
+    console.log( 'all the promises or promise from recursive calls' )
+
+    // console.log("we can now initiate insert body");
+    const wait2 = await awaitNextCall(initiateInsertBody, data, 0);
   });
 };
 
