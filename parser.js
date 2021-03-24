@@ -164,7 +164,7 @@ const getIDs = async (chunk) => {
         );
       }
       console.log("first data executed ");
-      resolve(data);
+      resolve();
     });
     // console.log("bulk writing!");
     // resolve(idContainer);
@@ -172,45 +172,46 @@ const getIDs = async (chunk) => {
 };
 
 const insertBodyIntoProductID = (chunk) => {
-  console.log('called insert body')
+  console.log("called insert body");
+
+  let BodyContainer = [];
+
+  for (let i = 0; i < chunk.length; i++) {
+    let objID = chunk[i].product_id;
+
+    let question_id = chunk[i].id;
+    let question_body = chunk[i].body;
+    let question_date = chunk[i].date_written;
+    let asker_name = chunk[i].asker_name;
+    let question_helpfulness = chunk[i].helpful;
+    let reported = chunk[i].reported;
+    let answers = {};
+
+    let filter = { product_id: objID };
+
+    let update = {
+      $push: {
+        results: {
+          question_id,
+          question_body,
+          question_date,
+          asker_name,
+          question_helpfulness,
+          reported,
+          answers,
+        },
+      },
+    };
+
+    BodyContainer.push({
+      updateOne: {
+        filter,
+        update,
+        upsert: true,
+      },
+    });
+  }
   return new Promise((resolve, reject) => {
-    let BodyContainer = [];
-
-    for (let i = 0; i < chunk.length; i++) {
-      let objID = chunk[i].product_id;
-
-      let question_id = chunk[i].id;
-      let question_body = chunk[i].body;
-      let question_date = chunk[i].date_written;
-      let asker_name = chunk[i].asker_name;
-      let question_helpfulness = chunk[i].helpful;
-      let reported = chunk[i].reported;
-      let answers = {};
-
-      let filter = { product_id: objID };
-
-      let update = {
-        $push: {
-          results: {
-            question_id,
-            question_body,
-            question_date,
-            asker_name,
-            question_helpfulness,
-            reported,
-            answers,
-          },
-        },
-      };
-
-      BodyContainer.push({
-        updateOne: {
-          filter,
-          update,
-          upsert: true,
-        },
-      });
-    }
     productIDModel.bulkWrite(BodyContainer).then((data) => {
       console.log(
         data.matchedCount,
@@ -219,12 +220,12 @@ const insertBodyIntoProductID = (chunk) => {
         "modified count"
       );
       console.log("first Body of data executed into product_id");
-      resolve(data);
+      resolve();
     });
   });
 };
 
-const initiateGetIDs = async (chunkArr) => {
+const initiateGetIDs = async (chunkArr, chunk_size) => {
   const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
@@ -238,52 +239,73 @@ const initiateGetIDs = async (chunkArr) => {
   arrChunks.push(getIDs(secondHalf));
 
   return arrChunks;
+
+  const chunkArrCopy = [...chunkArr];
+
+  let arrChunks = [];
+
+  while ( chunkArrCopy.length ) {
+    arrChunks.push( getIDs( chunkArrCopy.splice(0, chunk_size) ) );
+  }
+
+  return arrChunks;
 };
 
-const initiateInsertBody = (chunkArr) => {
-  const chunkArrCopy = [...chunkArr];
+const initiateInsertBody = (chunkArr, chunk_size) => {
+  // const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
 
   const half = Math.ceil(chunkArr.length / 2);
 
-  const firstHalf = chunkArrCopy.splice(0, half);
-  const secondHalf = chunkArrCopy.splice(-half);
+  const firstHalf = chunkArr.slice(0, half);
+  const secondHalf = chunkArr.slice(-half);
 
   arrChunks.push(insertBodyIntoProductID(firstHalf));
   arrChunks.push(insertBodyIntoProductID(secondHalf));
 
+  console.log(arrChunks, "this is the 2 array chunks!");
+  return arrChunks;
+
+  const chunkArrCopy = [...chunkArr];
+
+  let arrChunks = [];
+
+  while ( chunkArrCopy.length ) {
+    arrChunks.push( insertBodyIntoProductID( chunkArrCopy.splice(0, chunk_size) ) );
+  }
+
   return arrChunks;
 };
 
-const awaitNextCall = async (arrPromiseToWaitForCB, originalArr, arrIndex) => {
-  let chunk = arrPromiseToWaitForCB(originalArr[arrIndex]);
+const awaitNextCall = async (arrPromiseToWaitForCB, originalArr, arrIndex, chunk_size) => {
+  let chunk = arrPromiseToWaitForCB(originalArr[arrIndex], chunk_size);
 
+  console.log("we got a chunk in await call");
   let promiseChunks = await new Promise((resolve, reject) => {
     Promise.resolve(chunk).then((data) => {
-      resolve(data);
+      console.log("we resolved promise chunk");
+      resolve(data)
     });
   });
 
   let resolvedChunks = await new Promise((resolve, reject) => {
-    Promise.all(promiseChunks).then((data) => {
-      resolve(data);
+    Promise.all(promiseChunks).then(async (data) => {
+      console.log("we resolved promise CHUNKS!");
+      resolve();
     });
   });
 
-  let callStack; 
-
   if (arrIndex === originalArr.length - 1) {
-    console.log(callStack, ' call stack in if statement')
+    // console.log(callStack, " call stack in if statement");
     return;
   }
 
   arrIndex += 1;
 
-  callStack = await awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
+  const promises = await awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
 
-  console.log( callStack,  " this is the current call stack!!!");
-
+  //   console.log(callStack, " this is the current call stack!!!");
   // Promise.resolve(data).then((multiArrPromise) => {
   //   Promise.all(multiArrPromise).then((data) => {
   //     if (arrIndex === originalArr.length - 1) {
@@ -304,12 +326,19 @@ const resolveAllDataToInjectIntoDb = (promiseArr) => {
   Promise.all(promiseArr).then(async (data) => {
     //this is 4 chunks of 4 arrays containing all 3 mil csv data
 
-    // const wait = await awaitNextCall(initiateGetIDs, data, 0);
+    /*
+      callBack,  - initiateGetIDs
+      the original data(3 mil split up into 4 parts) - [ 800k out of the 3 mil data ]
+      the index where you want it to start  - 0 - [ [800k data]( - this arr), [], [],[] ]
+      and how many times you want the chunk to be split up even furthur! - 4 times
+    */
 
-    console.log( 'all the promises or promise from recursive calls' )
+    const wait = await awaitNextCall(initiateGetIDs, data, 0, 4); 
+
+    console.log("all the promises or promise from recursive calls");
 
     // console.log("we can now initiate insert body");
-    const wait2 = await awaitNextCall(initiateInsertBody, data, 0);
+    const wait2 = await awaitNextCall(initiateInsertBody, data, 0, 4);
   });
 };
 
