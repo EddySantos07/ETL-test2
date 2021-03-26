@@ -17,27 +17,6 @@ const { db } = require("./mongo");
 const { resolve } = require("path");
 const { resolve4, resolve6, resolveAny } = require("dns");
 
-// {
-//   id: '99',
-//   product_id: '29',
-//   body: 'Error nihil delectus tempora dolores asperiores.',
-//   date_written: '2019-04-14',
-//   asker_name: 'Taryn.Lebsack24',
-//   asker_email: 'Avery.Gerhold34@gmail.com',
-//   reported: '0',
-//   helpful: '5'
-// },
-// {
-//   id: '100',
-//   product_id: '30',
-//   body: 'Ipsum assumenda ipsum.',
-//   date_written: '2019-07-13',
-//   asker_name: 'Collin.Cruickshank61',
-//   asker_email: 'Winston.Abernathy49@yahoo.com',
-//   reported: '0',
-//   helpful: '0'
-// },
-
 /*  */
 
 const testQuery = async () => {
@@ -48,8 +27,6 @@ const testQuery = async () => {
 
   console.log(filter, "filter");
 };
-// testQuery();
-/*  STAGE 1 */
 
 /* this function gets the headers from the dir file /QA-CSV-Headers/questionsHeaders.csv */
 const getQuestionsHeaders = async () => {
@@ -64,16 +41,6 @@ const getQuestionsHeaders = async () => {
   });
 };
 
-/* 
-
-  this function is the bread/butter, 
-
-  it reads the 3 mil+ csv file and 
-  it takes in that data,
-  seprates them into 4 different files,
-  then spits them out in testCsvMaker
-
-*/
 const makeCsv = () => {
   csv()
     .fromFile(__dirname + "/QA-CSV-Files/questions.csv")
@@ -92,7 +59,6 @@ const makeCsv = () => {
       }
     });
 };
-
 // makeCsv();
 
 const readAllFiles = () => {
@@ -100,12 +66,6 @@ const readAllFiles = () => {
   let data = [];
 
   for (let i = 1; i <= 4; i++) {
-    // readFile(__dirname + `/testCsvMaker/questions${i}.csv`, "utf8", (err, data) => {
-    //   if (err) throw err;
-
-    //   console.log(data)
-    // });
-
     data.push(
       new Promise((resolve, reject) => {
         csv()
@@ -122,22 +82,13 @@ const readAllFiles = () => {
 
 let promiseData = readAllFiles();
 
-// productIDModel.bulkWrite(drainer); // syntax for bulkWrite
-
-// {
-//   updateOne: {
-//     filter,
-//     update,
-//     upsert: true,
-//   }
-
 const getIDs = async (chunk) => {
   return new Promise((resolve, reject) => {
     let idContainer = [];
 
     for (let i = 0; i < chunk.length; i++) {
       let objID = chunk[i].product_id;
-      // console.log(objID);
+
       let filter = { product_id: Number(objID.trim()) };
 
       let update = {
@@ -152,7 +103,7 @@ const getIDs = async (chunk) => {
         },
       });
     }
-    // console.log(idContainer)
+
     let count = 1;
     productIDModel.bulkWrite(idContainer).then((data) => {
       if (count === 1) {
@@ -166,8 +117,6 @@ const getIDs = async (chunk) => {
       console.log("first data executed ");
       resolve();
     });
-    // console.log("bulk writing!");
-    // resolve(idContainer);
   });
 };
 
@@ -192,7 +141,7 @@ const insertBodyIntoProductID = (chunk) => {
     let update = {
       $push: {
         results: {
-          question_id,
+          question_id: { question_id, upsert: true },
           question_body,
           question_date,
           asker_name,
@@ -226,20 +175,6 @@ const insertBodyIntoProductID = (chunk) => {
 };
 
 const initiateGetIDs = async (chunkArr, chunk_size) => {
-  // const chunkArrCopy = [...chunkArr];
-
-  // let arrChunks = [];
-
-  // const half = Math.ceil(chunkArr.length / 2);
-
-  // const firstHalf = chunkArrCopy.splice(0, half);
-  // const secondHalf = chunkArrCopy.splice(-half);
-
-  // arrChunks.push(getIDs(firstHalf));
-  // arrChunks.push(getIDs(secondHalf));
-
-  // return arrChunks;
-
   const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
@@ -254,20 +189,6 @@ const initiateGetIDs = async (chunkArr, chunk_size) => {
 };
 
 const initiateInsertBody = (chunkArr, chunk_size) => {
-  // const chunkArrCopy = [...chunkArr];
-
-  // let arrChunks = [];
-
-  // const half = Math.ceil(chunkArr.length / 2);
-
-  // const firstHalf = chunkArr.slice(0, half);
-  // const secondHalf = chunkArr.slice(-half);
-
-  // arrChunks.push(insertBodyIntoProductID(firstHalf));
-  // arrChunks.push(insertBodyIntoProductID(secondHalf));
-
-  // return arrChunks;
-
   const chunkArrCopy = [...chunkArr];
 
   let arrChunks = [];
@@ -305,7 +226,6 @@ const awaitNextCall = async (
   });
 
   if (arrIndex === originalArr.length - 1) {
-    // console.log(callStack, " call stack in if statement");
     return;
   }
 
@@ -317,25 +237,6 @@ const awaitNextCall = async (
     arrIndex,
     chunk_size
   );
-
-  promiseChunks = "";
-  resolvedChunks = "";
-  delete promises;
-  //   console.log(callStack, " this is the current call stack!!!");
-  // Promise.resolve(data).then((multiArrPromise) => {
-  //   Promise.all(multiArrPromise).then((data) => {
-  //     if (arrIndex === originalArr.length - 1) {
-  //       resolve();
-  //       console.log("returning from await call!");
-  //       return;
-  //     }
-
-  //
-
-  //     console.log("^ should see first data executed before next call");
-  //     awaitNextCall(arrPromiseToWaitForCB, originalArr, arrIndex);
-  //   });
-  // });
 };
 
 const resolveAllDataToInjectIntoDb = (promiseArr) => {
@@ -349,12 +250,8 @@ const resolveAllDataToInjectIntoDb = (promiseArr) => {
       and how many times you want the chunk to be split up even furthur! - 4 times
     */
 
-    // const wait = await awaitNextCall(initiateGetIDs, data, 0, 100000);
-
-    console.log("all the promises or promise from recursive calls");
-
-    // console.log("we can now initiate insert body");
-    const wait2 = await awaitNextCall(initiateInsertBody, data, 0, 200000);
+    awaitNextCall(initiateGetIDs, data, 0, 100000);
+    awaitNextCall(initiateInsertBody, data, 0, 200000);
   });
 };
 

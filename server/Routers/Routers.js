@@ -1,12 +1,15 @@
 var express = require("express");
 var router = express.Router();
 
+const { GetQuestions } = require('./QuestionsQuery/QuestionsQuery');
+
 /*
     Retrieves a list of questions for a particular product. 
     This list does not include any reported questions.
 */
 
-router.get("/questions");
+router.get("/questions/:product_id/:page/:count", GetQuestions);
+
 
 /*
     Returns answers for a given question. 
